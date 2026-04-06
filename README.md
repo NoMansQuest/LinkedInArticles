@@ -1,4 +1,4 @@
-# Low-Level & High-Performance C++: Article Demos
+# High Performance Programming in C++: Article Demos
 
 Hi, I'm Nasser, and welcome to the companion repository for my technical articles on LinkedIn. This repository is a collection of standalone "lab" projects designed to demonstrate deep-system concepts, ranging from cache coherency to modern C++ memory management.
 

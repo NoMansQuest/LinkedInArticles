@@ -1,0 +1,15 @@
+#Ignore everything in the /bin/ folder
+bin/*
+build/*
+.vs/*
+debug/*
+release/*
+src/release/*
+src/debug/*
+src/bin/*
+tests/release/*
+tests/debug/*
+tests/bin/*
+src/test.bin/*
+src/Test/*
+

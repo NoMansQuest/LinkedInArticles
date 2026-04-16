@@ -1,0 +1,164 @@
+name: Build on Windows & Linux
+
+# 1. Trigger the workflow on:
+#    - Push to the main branch
+#    - Pull requests targeting the main branch
+#    - Manual trigger via the GitHub UI (workflow_dispatch)
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+# 2. Define the jobs that will run.
+#    We have two separate jobs: one for Linux and one for Windows.
+#    They do not run in parallel here. This happens because windows
+#    depends on Linux via 'needs' (the build action, not binaries).
+jobs:
+
+  # 3. Linux build job
+  build-linux:
+    name: Build Linux (Release)
+    runs-on: ubuntu-latest
+
+    steps:
+      # First thing's first... we need to checkout the repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          # Fetch submodules if your project uses git submodules (e.g. third-party libraries)
+          submodules: recursive
+
+      # Install Qt using a popular community action.
+      # This action downloads and sets up Qt, and adds it to PATH automatically.
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          # Qt version to install. You can change this to 6.5.* or 6.6.* etc.
+          version: '6.3.2'
+          # Host platform (the OS running the build)
+          host: linux
+          # Target platform (what we're building for)
+          target: desktop
+          # Architecture for Linux
+          arch: gcc_64
+          # Automatically install Qt dependencies via apt
+          install-deps: true
+
+      # Then we need to install linux dependencies on this build agent.
+      - name: Install Linux dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y \
+            libgl1-mesa-dev libxkbcommon-x11-0 libfontconfig1-dev \
+            libdbus-1-dev libxcb-cursor0 libxcb-xinerama0
+
+      # This is the standard CMake configuration command. We run it here too...
+      # -S .  = source directory (root of repo)
+      # -B build = build directory (out-of-source build, recommended)
+      # We use Release configuration for a smaller and faster binary
+      - name: Configure CMake        
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+
+      # Standard CMake build, also run in Github pipeline.
+      # --parallel 2 limits parallelism to 2 cores (GitHub runners have limited CPU)
+      # You can increase this or remove it to use all available cores
+      - name: Build        
+        run: cmake --build build --config Release --parallel 2
+
+      # And last but not least, we upload our artifacts (i.e. outputs).
+      - name: Upload Linux artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: VisualLinkerScript-Linux-Release          
+          path: build/bin/*
+          retention-days: 7
+
+  # 4. Windows build job
+  #    This job depends on the Linux job (via 'needs'), so it runs after Linux finishes.
+  #    You can remove 'needs: build-linux' if you want fully parallel builds.
+  build-windows:
+    name: Build Windows (Release)
+    runs-on: windows-latest
+    needs: build-linux
+
+    steps:    
+      # First thing's first... we need to checkout the repository. Note that this
+      # is happening on a different build agent, so we can't reuse anything from
+      # the linux build above.
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      # Install the Qt and MSCV tool-chain on the build-agent machine (but target 
+      # is set to windows this time) as we are building for windows, and will be
+      # using MSVC not GCC.
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.3.2'
+          host: windows
+          target: desktop
+          arch: win64_msvc2019_64
+          install-deps: true
+
+      # This is the standard CMake configuration command. We run it here too...
+      - name: Configure CMake
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+
+      # Standard CMake build action...
+      - name: Build
+        run: cmake --build build --config Release --parallel 2
+
+      # Ok this step is needed for windows builds, as 'windeployqt' needs to 
+      # be invoked to copy runtime DLLs to correct locations in the build output folder.
+      #
+      # Failing to do so will result in executable crashing on startup, complaining
+      # about missing DLLs.
+      - name: Deploy Qt runtime (windeployqt)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $qtRoot = $env:QT_ROOT_DIR
+          $qtBin = "$qtRoot/bin"
+
+          Write-Host "QT_ROOT_DIR = $env:QT_ROOT_DIR"
+          Write-Host "qtBin = $qtBin"
+
+          # Auto-search for the executable
+          Write-Host "Searching for VisualLinkerScript.exe in build folder..."
+          $exeFiles = Get-ChildItem -Path build -Recurse -File -Filter "VisualLinkerScript.exe" -ErrorAction SilentlyContinue
+
+          if ($exeFiles.Count -eq 0) {
+            Write-Error "No VisualLinkerScript.exe found in build folder!"
+            exit 1
+          }
+
+          $exePath = $exeFiles[0].FullName
+          Write-Host "Found executable at: $exePath"
+
+          if (-not (Test-Path "$qtBin/windeployqt.exe")) {
+            Write-Error "windeployqt.exe not found in $qtBin"
+            exit 1
+          }
+
+          Write-Host "Running windeployqt on $exePath..."
+          & "$qtBin/windeployqt.exe" `
+            --dir "build/bin" `
+            --libdir "build/bin" `
+            --plugindir "build/bin/plugins" `
+            --no-compiler-runtime `
+            --no-translations `
+            $exePath
+
+          Write-Host "windeployqt finished."
+
+      # Upload the Windows build (including deployed Qt DLLs and plugins)
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: VisualLinkerScript-Windows-Release
+          path: build/bin/*
+          retention-days: 7

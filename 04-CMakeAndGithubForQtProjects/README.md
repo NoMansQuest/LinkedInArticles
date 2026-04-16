@@ -1,4 +1,3 @@
-[![Build on Windows & Linux](https://github.com/NoMansQuest/VisualLinkerScript/actions/workflows/build.yml/badge.svg)](https://github.com/NoMansQuest/VisualLinkerScript/actions/workflows/build.yml)
+# Your project README file
 
-# Visual Linker Script
-A tool to help in creating, visualizing and editing GNU Linker-Scripts (commonly used in embedded system design).
+You can introduce your project here and brief the reader on the goals of your solution and steps needed to get it to run (including build, execution, etc.). Be creative and engaging, as most people simply skip the whole readme should it be non-engaging or dull.

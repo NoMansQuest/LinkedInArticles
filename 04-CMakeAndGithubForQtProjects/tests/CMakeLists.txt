@@ -60,3 +60,8 @@ add_custom_target(check
     COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
     DEPENDS tests
 )
+
+# Need to include 'GoogleTest' as they are here. Also we need to force discovery of
+# tests by GTest.
+include(GoogleTest)
+gtest_discover_tests(tests)

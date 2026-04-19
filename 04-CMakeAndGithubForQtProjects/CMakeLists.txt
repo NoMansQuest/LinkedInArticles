@@ -6,7 +6,7 @@ cmake_minimum_required(VERSION 3.20...3.30)
 #    This must come before most other commands.
 #    LANGUAGES CXX tells CMake we are building C++ code.
 #    VERSION sets the version of your build.
-project(VisualLinkerScript VERSION 1.0.0 LANGUAGES CXX)
+project(QtProjectTemplate VERSION 1.0.0 LANGUAGES CXX)
 
 # 3. Define output directories for binaries, libraries, and archives.
 #    This keeps the build folder organized: all executables go into <build>/bin,

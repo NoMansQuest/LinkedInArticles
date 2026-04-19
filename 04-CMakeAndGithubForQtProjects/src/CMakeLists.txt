@@ -71,17 +71,15 @@ target_link_libraries(app_core PRIVATE
 #    resource via 'qt_add_resources'.
 qt_add_resources(APP_RESOURCES resources.qrc)
 
-# 9. Now we need to declare our actual executable. The project I took this from was 
-#    called 'VisualLinkerScript', but your executable could be named anything. The output
-#    binary would be named accordingly.
-add_executable(VisualLinkerScript
+# 9. Now we need to declare our actual executable.
+add_executable(QtProjectTemplate
     main.cpp
     ${APP_RESOURCES}
 )
 
 # 10. Since our executable also supports Qt, we need to include the same Qt libraries
 #     as we did for our app_core library.
-target_link_libraries(VisualLinkerScript 
+target_link_libraries(QtProjectTemplate 
     PRIVATE 
         app_core
         Qt${QT_VERSION_MAJOR}::Core
@@ -95,7 +93,7 @@ if(WIN32)
 
     # Make this a proper Windows GUI application (no console window) and set the
     # correct entry point.
-    set_target_properties(VisualLinkerScript PROPERTIES
+    set_target_properties(QtProjectTemplate PROPERTIES
         WIN32_EXECUTABLE TRUE
         LINK_FLAGS "/SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup"
     )
@@ -103,9 +101,9 @@ if(WIN32)
     # Copy all runtime DLL dependencies (including those from Qt) next to the executable.
     # The generator expression $<TARGET_RUNTIME_DLLS:...> automatically expands to
     # the list of DLLs required by the target. This is much cleaner than manual copying.
-    add_custom_command(TARGET VisualLinkerScript POST_BUILD
+    add_custom_command(TARGET QtProjectTemplate POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            $<TARGET_RUNTIME_DLLS:VisualLinkerScript> $<TARGET_FILE_DIR:VisualLinkerScript>
+            $<TARGET_RUNTIME_DLLS:QtProjectTemplate> $<TARGET_FILE_DIR:QtProjectTemplate>
         COMMAND_EXPAND_LISTS
     )
 
@@ -120,14 +118,14 @@ if(WIN32)
     get_target_property(QT_BIN_DIR Qt${QT_VERSION_MAJOR}::qmake LOCATION)
     get_filename_component(QT_BIN_DIR "${QT_BIN_DIR}" DIRECTORY)
 
-    add_custom_command(TARGET VisualLinkerScript POST_BUILD
+    add_custom_command(TARGET QtProjectTemplate POST_BUILD
         COMMAND "${QT_BIN_DIR}/windeployqt.exe"
-            --dir "$<TARGET_FILE_DIR:VisualLinkerScript>"
-            --libdir "$<TARGET_FILE_DIR:VisualLinkerScript>"
-            --plugindir "$<TARGET_FILE_DIR:VisualLinkerScript>/plugins"
+            --dir "$<TARGET_FILE_DIR:QtProjectTemplate>"
+            --libdir "$<TARGET_FILE_DIR:QtProjectTemplate>"
+            --plugindir "$<TARGET_FILE_DIR:QtProjectTemplate>/plugins"
             --no-compiler-runtime    # Skip MSVC redist if you handle it separately
             --no-translations
-            "$<TARGET_FILE:VisualLinkerScript>"
+            "$<TARGET_FILE:QtProjectTemplate>"
         COMMENT "Running windeployqt to copy Qt plugins and DLLs (including platforms/qwindows.dll)"
     )
 endif()

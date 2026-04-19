@@ -17,7 +17,7 @@ on:
 #    depends on Linux via 'needs' (the build action, not binaries).
 jobs:
 
-  # 3. Linux build job
+  # 3. Linux build job, executed in its own dedicated virtual machine (known as build-agent)
   build-linux:
     name: Build Linux (Release)
     runs-on: ubuntu-latest
@@ -67,6 +67,11 @@ jobs:
       - name: Build        
         run: cmake --build build --config Release --parallel 2
 
+      # Run unit tests (and other tests if available)  
+      - name: Run tests
+        working-directory: build
+        run: ctest -C Release --output-on-failure -V  
+
       # And last but not least, we upload our artifacts (i.e. outputs).
       - name: Upload Linux artifact
         uses: actions/upload-artifact@v4
@@ -75,7 +80,11 @@ jobs:
           path: build/bin/*
           retention-days: 7
 
-  # 4. Windows build job
+  # 4. Windows build job, executed in its own dedicated virtual machine. 
+  #
+  #    Note that this build-agent CANNOT shared anything with the Linux-Build
+  #    agent, as these two are unrelated.
+  #
   #    This job depends on the Linux job (via 'needs'), so it runs after Linux finishes.
   #    You can remove 'needs: build-linux' if you want fully parallel builds.
   build-windows:
@@ -111,6 +120,11 @@ jobs:
       # Standard CMake build action...
       - name: Build
         run: cmake --build build --config Release --parallel 2
+
+      # Run unit tests (and other tests if available)  
+      - name: Run tests
+        working-directory: build
+        run: ctest -C Release --output-on-failure -V        
 
       # Ok this step is needed for windows builds, as 'windeployqt' needs to 
       # be invoked to copy runtime DLLs to correct locations in the build output folder.

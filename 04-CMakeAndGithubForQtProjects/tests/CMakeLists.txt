@@ -58,49 +58,64 @@ set_tests_properties(AllRegisteredTests
         LABELS "unit;auto"
 )
 
+# Put tests in their own folder
+set_target_properties(tests PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/tests/Debug
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/tests/Release
+)
+
 # Optional: make "make check" or VS "Build → Run CTest" more convenient
 add_custom_target(check
     COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
     DEPENDS tests
 )
 
+# ================================================================
+#  Make gtest_discover_tests work on Windows with Qt DLLs
+# ================================================================
+if(WIN32)
+
+    # Make this a proper Windows GUI application (no console window) and set the
+    # correct entry point.
+    set_target_properties(tests PROPERTIES
+        WIN32_EXECUTABLE TRUE
+        LINK_FLAGS "/SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup"
+    )
+
+    # Copy all runtime DLL dependencies (including those from Qt) next to the executable.
+    # The generator expression $<TARGET_RUNTIME_DLLS:...> automatically expands to
+    # the list of DLLs required by the target. This is much cleaner than manual copying.
+    add_custom_command(TARGET tests POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            $<TARGET_RUNTIME_DLLS:tests> $<TARGET_FILE_DIR:tests>
+        COMMAND_EXPAND_LISTS
+    )
+
+    # Run Qt's official deployment tool (windeployqt) to copy Qt plugins 
+    # (e.g. platforms/qwindows.dll), QML imports (if any), and other required Qt files.
+    # First we locate the Qt bin directory by asking for the location of qmake (i.e. 
+    # 'get_target_property' and 'get_filename_component').
+    #
+    # WARNING: If you omit the following section, you will get an executable in the output
+    #          folder that simply crash on execution, complaining about missing DLLs. 
+    #          This applies to Windows only.
+    get_target_property(QT_BIN_DIR Qt${QT_VERSION_MAJOR}::qmake LOCATION)
+    get_filename_component(QT_BIN_DIR "${QT_BIN_DIR}" DIRECTORY)
+
+    add_custom_command(TARGET tests POST_BUILD
+        COMMAND "${QT_BIN_DIR}/windeployqt.exe"
+            --dir "$<TARGET_FILE_DIR:tests>"
+            --libdir "$<TARGET_FILE_DIR:tests>"
+            --plugindir "$<TARGET_FILE_DIR:tests>/plugins"
+            --no-compiler-runtime    # Skip MSVC redist if you handle it separately
+            --no-translations
+            "$<TARGET_FILE:tests>"
+        COMMENT "Running windeployqt to copy Qt plugins and DLLs (including platforms/qwindows.dll)"
+    )
+endif()
+
 # Need to include 'GoogleTest' as they are here. Also we need to force discovery of
 # tests by GTest.
 include(GoogleTest)
 gtest_discover_tests(tests)
-
-
-# cmake_minimum_required(VERSION 3.16)
-
-# project(Tests LANGUAGES CXX)
-
-# set(CMAKE_CXX_STANDARD 17)
-# set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
-# # ====================== GoogleTest FetchContent ======================
-# include(FetchContent)
-
-# FetchContent_Declare(
-#   googletest
-#   URL https://github.com/google/googletest/archive/refs/tags/v1.15.2.zip
-# )
-
-# set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-# FetchContent_MakeAvailable(googletest)
-# # ===================================================================
-
-# enable_testing()
-
-# add_executable(tests
-#     main.cpp
-# )
-
-# target_link_libraries(tests
-#     PRIVATE
-#         GTest::gtest_main
-#         app_core        # This links to your src library
-# )
-
-# # === CRITICAL: These two lines are required for ctest to work ===
-# include(GoogleTest)
-# gtest_discover_tests(tests)

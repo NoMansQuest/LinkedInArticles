@@ -8,12 +8,13 @@ cmake_minimum_required(VERSION 3.20...3.30)
 #    VERSION sets the version of your build.
 project(QtProjectTemplate VERSION 1.0.0 LANGUAGES CXX)
 
-# 3. Define output directories for binaries, libraries, and archives.
+# 3. Define output directories for binaries, libraries, archives abd tests,
 #    This keeps the build folder organized: all executables go into <build>/bin,
 #    static libraries into <build>/lib, etc.
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(TESTS_OUTPUT_DIR ${CMAKE_BINARY_DIR}/tests)
 
 # 4. Set global CMake and Qt-related properties.
 #

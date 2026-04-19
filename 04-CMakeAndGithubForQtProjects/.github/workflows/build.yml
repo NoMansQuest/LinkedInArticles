@@ -89,7 +89,7 @@ jobs:
       - name: Upload Linux artifact
         uses: actions/upload-artifact@v4
         with:
-          name: VisualLinkerScript-Linux-Release          
+          name: QtProjectTemplate-Linux-Release          
           path: build/bin/*
           retention-days: 7
 
@@ -155,11 +155,11 @@ jobs:
           Write-Host "qtBin = $qtBin"
 
           # Auto-search for the executable
-          Write-Host "Searching for VisualLinkerScript.exe in build folder..."
-          $exeFiles = Get-ChildItem -Path build -Recurse -File -Filter "VisualLinkerScript.exe" -ErrorAction SilentlyContinue
+          Write-Host "Searching for QtProjectTemplate.exe in build folder..."
+          $exeFiles = Get-ChildItem -Path build -Recurse -File -Filter "QtProjectTemplate.exe" -ErrorAction SilentlyContinue
 
           if ($exeFiles.Count -eq 0) {
-            Write-Error "No VisualLinkerScript.exe found in build folder!"
+            Write-Error "No QtProjectTemplate.exe found in build folder!"
             exit 1
           }
 
@@ -198,6 +198,6 @@ jobs:
       - name: Upload Windows artifact
         uses: actions/upload-artifact@v4
         with:
-          name: VisualLinkerScript-Windows-Release
+          name: QtProjectTemplate-Windows-Release
           path: build/bin/*
           retention-days: 7

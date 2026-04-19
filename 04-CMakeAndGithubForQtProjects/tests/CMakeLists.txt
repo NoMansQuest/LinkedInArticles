@@ -79,8 +79,7 @@ if(WIN32)
     # Make this a proper Windows GUI application (no console window) and set the
     # correct entry point.
     set_target_properties(tests PROPERTIES
-        WIN32_EXECUTABLE TRUE
-        LINK_FLAGS "/SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup"
+        WIN32_EXECUTABLE FALSE
     )
 
     # Copy all runtime DLL dependencies (including those from Qt) next to the executable.

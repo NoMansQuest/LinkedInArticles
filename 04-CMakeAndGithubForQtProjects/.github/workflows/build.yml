@@ -35,7 +35,8 @@ jobs:
       - name: Install Qt
         uses: jurplel/install-qt-action@v4
         with:
-          # Qt version to install. You can change this to 6.5.* or 6.6.* etc.
+          # Qt version to install. You can change this to 6.5.* or 6.6.* etc. Note that this change must apply to
+          # the 'Run tests' section as well, as the version is present in the path.
           version: '6.3.2'
           # Host platform (the OS running the build)
           host: linux
@@ -73,6 +74,18 @@ jobs:
         run: ctest -C Release --output-on-failure -V  
 
       # And last but not least, we upload our artifacts (i.e. outputs).
+      #
+      # NOTE: Retention days says how long your binaries will be kept once uploaded. The following
+      #       setup ensures the artifacts will be retained for 7 days. You may want a longer retention
+      #       period for your artifacts.
+      #
+      #       This depends on your iterative releases as well. If you plan on releasing a new version every
+      #       two weeks, then a retention period of 28 days ensures that the most recent release along with
+      #       three previous releases are available at any given point in time.
+      #
+      #       Outside the Desktop, this could become quite important in cases where you are deploying docker
+      #       images, as your Kubernetes engine may require to fall-back a version or two should the new image
+      #       not work as expected, so please keep this in mind!
       - name: Upload Linux artifact
         uses: actions/upload-artifact@v4
         with:
@@ -115,7 +128,7 @@ jobs:
 
       # This is the standard CMake configuration command. We run it here too...
       - name: Configure CMake
-        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release 
 
       # Standard CMake build action...
       - name: Build
@@ -124,7 +137,7 @@ jobs:
       # Run unit tests (and other tests if available)  
       - name: Run tests
         working-directory: build
-        run: ctest -C Release --output-on-failure -V        
+        run: ctest -C Release --output-on-failure -V     
 
       # Ok this step is needed for windows builds, as 'windeployqt' needs to 
       # be invoked to copy runtime DLLs to correct locations in the build output folder.
@@ -169,7 +182,19 @@ jobs:
 
           Write-Host "windeployqt finished."
 
-      # Upload the Windows build (including deployed Qt DLLs and plugins)
+      # Upload the Windows build (including deployed Qt DLLs and plugins)    
+      #
+      # NOTE: Retention days says how long your binaries will be kept once uploaded. The following
+      #       setup ensures the artifacts will be retained for 7 days. You may want a longer retention
+      #       period for your artifacts.
+      #
+      #       This depends on your iterative releases as well. If you plan on releasing a new version every
+      #       two weeks, then a retention period of 28 days ensures that the most recent release along with
+      #       three previous releases are available at any given point in time.
+      #
+      #       Outside the Desktop, this could become quite important in cases where you are deploying docker
+      #       images, as your Kubernetes engine may require to fall-back a version or two should the new image
+      #       not work as expected, so please keep this in mind!
       - name: Upload Windows artifact
         uses: actions/upload-artifact@v4
         with:

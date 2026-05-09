@@ -1,36 +1,37 @@
 // =============================================================================
-// bench_cpp98.cpp  —  Parallel reduction, C++98 style (POSIX threads)
+// bench_cpp98.cpp - Parallel reduction, C++98 style (POSIX threads)
 //
 // Compile:  g++ -O2 -std=c++98 -lpthread -o bench_cpp98 bench_cpp98.cpp
 // Run:      ./bench_cpp98
 //
-// Strategy: manually spawn N pthreads, each reduces its slice of the array,
-//           then the main thread sums the per-thread partial results.
-//           Every piece of RAII, synchronisation and work-splitting is hand-
-//           written - exactly what developers had to do before C++11.
-// ============================================================================= 
+// Mechanism: manually spawn NTHREADS pthreads, each reduces its slice,
+//            main thread joins all and sums the partial results.
+//
+// This is the complete parallel programming model in C++98:
+//   - No standard thread type; must use OS primitives directly (POSIX here,
+//     Win32 CreateThread on Windows - no portability)
+//   - Worker logic passed as a function pointer through a void*
+//   - Worker state bundled into a hand-rolled struct; no lambdas
+//   - No RAII; forgetting pthread_join leaks the thread
+//   - No standard timer; clock_gettime is POSIX-only
+//
+// Every line below is load-bearing infrastructure. None of it is the
+// algorithm - the algorithm is four lines inside worker().
+// =============================================================================
+ 
 #include <pthread.h>
 #include <cstddef>
-#include <cstdlib>
-#include <ctime>
-#include <cmath>
 #include <cstdio>
+#include <ctime>
  
-// ---------------------------------------------------------------------------
-// Benchmark parameters
-// ---------------------------------------------------------------------------
-static const std::size_t N = 5000000;  // 100 M elements
-static const int NTHREADS = 8;         // tune to your core count
+static const std::size_t N = 10000000;
+static const int NTHREADS = 8;
  
-// ---------------------------------------------------------------------------
-// Shared data passed to each worker thread via a plain struct
-// (no lambdas, no std::function — C++98 only)
-// ---------------------------------------------------------------------------
 struct ThreadArg {
     const double* data;
     std::size_t   begin;
     std::size_t   end;
-    double        result;   // written by the worker, read by main
+    double        result;
 };
  
 static void* worker(void* raw)
@@ -43,35 +44,17 @@ static void* worker(void* raw)
     return NULL;
 }
  
-// ---------------------------------------------------------------------------
-// Portable wall-clock timer (C89 clock() measures CPU time; we use
-// clock_gettime where available, else fall back to clock()).
-// ---------------------------------------------------------------------------
 static double now_sec()
 {
-#ifdef _POSIX_TIMERS
     struct timespec ts;
     clock_gettime(CLOCK_MONOTONIC, &ts);
     return ts.tv_sec + ts.tv_nsec * 1e-9;
-#else
-    return static_cast<double>(clock()) / CLOCKS_PER_SEC;
-#endif
 }
  
-int main()
+static double run(const double* data)
 {
-    // Allocate and initialise the array (raw new[], no vector in C++98 style
-    // is fine, but std::vector existed — we use it via C-cast-free new here
-    // to keep the "flavour" authentic).
-    double* data = new double[N];
-    for (std::size_t i = 0; i < N; ++i)
-        data[i] = 1.0 / (i + 1.0);   // harmonic series - avoids trivial opt
- 
-    // -----------------------------------------------------------------------
-    // Thread setup
-    // -----------------------------------------------------------------------
     pthread_t threads[NTHREADS];
-    ThreadArg args[NTHREADS]; 
+    ThreadArg args[NTHREADS];
     std::size_t chunk = N / NTHREADS;
  
     double t0 = now_sec();
@@ -84,17 +67,26 @@ int main()
         pthread_create(&threads[t], NULL, worker, &args[t]);
     }
  
-    // -----------------------------------------------------------------------
-    // Join and combine
-    // -----------------------------------------------------------------------
     double total = 0.0;
     for (int t = 0; t < NTHREADS; ++t) {
         pthread_join(threads[t], NULL);
         total += args[t].result;
     }
  
-    double elapsed = (now_sec() - t0) * 1000; 
-    std::printf("[C++98 / pthreads ] total = %.6f   time = %.4f ms   threads = %d\n", total, elapsed, NTHREADS);
+    return (now_sec() - t0) * 1000; // Obtain time in milliseconds
+}
+ 
+int main()
+{
+    double* data = new double[N];
+    for (std::size_t i = 0; i < N; ++i)
+        data[i] = 1.0 / (i + 1.0);
+ 
+    run(data);                          // warm-up
+    double elapsed = run(data);         // measured
+ 
+    std::printf("[C++98 / pthreads]  time = %.4f ms   threads = %d\n",
+                elapsed, NTHREADS);
  
     delete[] data;
     return 0;

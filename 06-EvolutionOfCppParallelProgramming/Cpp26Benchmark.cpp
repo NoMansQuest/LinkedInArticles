@@ -1,5 +1,5 @@
 // =============================================================================
-// bench_cpp26.cpp  -  Parallel reduction, C++26 style (std::execution / P2300)
+// bench_cpp26.cpp - Parallel reduction, C++26 style (std::execution / P2300)
 //
 // TWO COMPILATION PATHS:
 //

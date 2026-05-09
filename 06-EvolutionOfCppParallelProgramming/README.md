@@ -111,7 +111,9 @@ hardware portability, not raw throughput on a single CPU.
 
 ### Benchmarking Results
 
-The following results were obtained by executing all benchmark apps on Godbolt.org with '-O2' optimization.
+The following results were obtained by executing all benchmark apps my local machine:
+* AMD Ryzen 3700X @ 3.6GHz - 8 Cores
+* 64GB DDR4 RAM
 
 | Standard | Approach                                  | Execution Time (5M datapoints) |
 | -------- | ----------------------------------------- | ------------------------------ |
@@ -121,7 +123,7 @@ The following results were obtained by executing all benchmark apps on Godbolt.o
 | C++26    | Parallel Execution Policy (same as C++17) | 3.4140 ms                      |
 | C++26    | std::execution                            | 4.9314 ms                      |
 
-As you can see, there is little to no difference in performance after C++17.
+As you can see, there is significant improvement from C++98 to C++17, and then little to no difference in performance after C++17.
 
 ### Key Takeaway
 

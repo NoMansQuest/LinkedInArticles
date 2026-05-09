@@ -109,9 +109,23 @@ hardware portability, not raw throughput on a single CPU.
 
 ---
 
+### Benchmarking Results
+
+The following results were obtained by executing all benchmark apps on Godbolt.org with '-O2' optimization.
+
+| Standard | Approach                                  | Execution Time (5M datapoints) |
+| -------- | ----------------------------------------- | ------------------------------ |
+| C++98    | PThread (OS)                              | 39.6346 ms                     |
+| C++11    | std::thread                               | 11.4285 ms                     |
+| C++17    | Parallel Execution Policy                 | 3.5189 ms                      |
+| C++26    | Parallel Execution Policy (same as C++17) | 3.4140 ms                      |
+| C++26    | std::execution                            | 4.9314 ms                      |
+
+As you can see, there is little to no difference in performance after C++17.
+
 ### Key Takeaway
 
-> The only performance jump in 28 years of C++ parallelism happened in C++17. Everything before it was boilerplate. Everything after it is architecture.
+> The only performance jump in 28 years of C++ parallelism happened in C++17 with the introduction of "Execution Policy" for STL algorithms. Everything before it was boilerplate. Everything after it is architecture. 
 
 ---
 

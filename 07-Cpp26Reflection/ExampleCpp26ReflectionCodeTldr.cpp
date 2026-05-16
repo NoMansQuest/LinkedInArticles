@@ -25,8 +25,7 @@ public:
         constexpr auto ctx = std::meta::access_context::unchecked();
         
         // Note: 'members' must be defined as 'static'
-        constexpr static auto members = std::define_static_array(
-                                        std::meta::members_of(type, ctx));
+        constexpr static auto members = std::define_static_array(std::meta::members_of(type, ctx));
 
         std::cout << "--- Architectural Inspection: EngineComponent ---\n";
 

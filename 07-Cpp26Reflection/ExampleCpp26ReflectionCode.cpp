@@ -1,64 +1,43 @@
 #include <iostream>
-#include <reflection>
-#include <string_view>
+#include <meta>
 
-// A sample data packet (no macros, no hidden boilerplate, 100% clean)
+// IMPORTANT
+// ---------------------------------------------------------------------
+// This code can be tested in https://compiler-explorer.com/.
+// In order to do so, please follow these steps:
+//      1) Select 'x86-64 gcc (trunk)' as your compiler
+//      2) Use the following compiler arguments: -std=c++26 -freflection
+
+// Clean sample data packet
 struct TelemetryPacket {
     int packet_id = 101;
     float velocity = 299.79f;
     bool system_ready = true;
 };
 
-// The Universal Serialization Engine
+// Universal serialization using C++26 reflection
 template <typename T>
 void serialize_object(const T& obj) {
-    // 1. The '^' Operator: Lift the class into the meta-world
-    constexpr auto type_meta = ^T;
-    
-    std::cout << "Serializing: " << std::meta::get_name(type_meta) << " {\n";
+    constexpr auto type_meta = ^^T; // reflect the type (noticed the 'cat-ears' sign?)
+    constexpr auto ctx = std::meta::access_context::unchecked();
+    constexpr static auto members = std::define_static_array(std::meta::nonstatic_data_members_of(type_meta, ctx));
 
-    // 2. The 'template for': Unroll the members at compile-time
-    template for (constexpr auto field : std::meta::get_members(type_meta)) {
+    std::cout << "Serializing: " << std::meta::identifier_of(type_meta) << " {\n";
+
+    // 'template for' expansion, this loop is unrolled during compile.
+    template for (constexpr auto field : members)
+    {        
+        std::cout << "  \"" << std::meta::identifier_of(field) << "\": ";
         
-        // Ensure we are only looking at variables (fields), not functions
-        if constexpr (std::meta::is_variable(field)) {
-            
-            // 3. The 'typename [: :]' Operator: Extract the type dynamically
-            using FieldType = typename [: std::meta::get_type(field) :];
-            
-            // Print the metadata name
-            std::cout << "  \"" << std::meta::get_name(field) << "\": ";
-            
-            // 4. The '[: :]' Operator: Reach through the mirror to get the value
-            // obj.[:field:] compiles down directly to obj.packet_id, obj.velocity, etc.
-            const FieldType& value = obj.[:field:];
-            
-            std::cout << value << ",\n";
-        }
+        // Splice: access the member through the reflection
+        const auto& value = obj.[:field:];
+        std::cout << value << ",\n";
     }
+
     std::cout << "}\n";
 }
 
-// 5. The '[:expand:]' Operator: Combining reflection with classic Template Packs
-template <auto... FieldMetas, typename T>
-void print_field_count_via_pack(const T& obj) {
-    // We expand a collection of reflection handles into a real C++ parameter pack
-    // allowing us to use a C++17 fold expression to count them.
-    constexpr size_t count = (... + (std::meta::is_variable(FieldMetas) ? 1 : 0));
-    std::cout << "Total reflective fields parsed: " << count << "\n";
-}
-
 int main() {
-    TelemetryPacket packet;
-
-    // Execute the full reflection pipeline
+    TelemetryPacket packet{};
     serialize_object(packet);
-
-    // Trigger the pack expansion demonstration
-    constexpr auto members = std::meta::get_members(^TelemetryPacket);
-    [:expand(members):] >> [&]<auto... M> {
-        print_field_count_via_pack<M...>(packet);
-    };
-
-    return 0;
 }
